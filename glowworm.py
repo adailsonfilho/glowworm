@@ -15,10 +15,10 @@ GSO Author:
 
 """
 
-def gso(individuals_number, dim, func_obj,epochs,step_size, dims_lim = [-1,1]):
+def gso(agents_number, dim, func_obj,epochs,step_size, dims_lim = [-1,1]):
 	
 	assert len(dims_lim) == 2
-	assert type(individuals_number) == int
+	assert type(agents_number) == int
 	assert type(dim) == int
 
 	#this will be used in the future to generate a log to monitor the activities
@@ -51,17 +51,17 @@ def gso(individuals_number, dim, func_obj,epochs,step_size, dims_lim = [-1,1]):
 	#random initiation
 	_min = dims_lim[0]
 	_max = dims_lim[1]
-	glowworms = np.random.uniform(_min,_max,[individuals_number,dim])
+	glowworms = np.random.uniform(_min,_max,[agents_number,dim])
 
 	#distances
-	distances = np.zeros([individuals_number,individuals_number])
+	distances = np.zeros([agents_number,agents_number])
 
 	#luciferin
-	luciferins = np.zeros(individuals_number)
+	luciferins = np.zeros(agents_number)
 	luciferins += luciferin_init
 	
 	#range of sigth
-	ranges = np.zeros(individuals_number)
+	ranges = np.zeros(agents_number)
 	ranges += range_init
 
 	"""
@@ -80,7 +80,7 @@ def gso(individuals_number, dim, func_obj,epochs,step_size, dims_lim = [-1,1]):
 		neighbors_index = []
 
 		#look for all the neighbors in a triangle distance matrix
-		for k in range(individuals_number):
+		for k in range(agents_number):
 
 			dist = get_distance(i,k)
 			#if it is in it's range of sigth and it's brightness is higher
@@ -137,7 +137,7 @@ def gso(individuals_number, dim, func_obj,epochs,step_size, dims_lim = [-1,1]):
 		new_position = glowworm + step_size*(toward-glowworm)/norm
 
 		#update distmatrix for all associated cells (not all matrix)
-		for k in range(individuals_number):
+		for k in range(agents_number):
 
 			if max(k,i) == k:
 				distances[i][k] = np.linalg.norm(new_position-glowworms[k])
@@ -171,8 +171,8 @@ def gso(individuals_number, dim, func_obj,epochs,step_size, dims_lim = [-1,1]):
 	best_fitness_history = []
 
 	#initialize distance matrix (over main diagonal, only)
-	for i in range(individuals_number):
-		for j in range(individuals_number):
+	for i in range(agents_number):
+		for j in range(agents_number):
 			if max(i,j) == j:
 				distances[i][j] = np.linalg.norm(glowworms[i]-glowworms[j])
 			elif max(i,j) == i:
@@ -182,7 +182,7 @@ def gso(individuals_number, dim, func_obj,epochs,step_size, dims_lim = [-1,1]):
 
 		epoch_fitness_history = []
 		#update all glowworms luciferin
-		for i in range(individuals_number):
+		for i in range(agents_number):
 
 			li = luciferins[i]
 			fitness = func_obj(glowworms[i])
@@ -192,7 +192,7 @@ def gso(individuals_number, dim, func_obj,epochs,step_size, dims_lim = [-1,1]):
 		best_fitness_history.append(max(epoch_fitness_history))
 
 		#movement phase
-		for i in range(individuals_number):
+		for i in range(agents_number):
 
 			#find best neighbors
 			neighbors = find_neighbors(i)
