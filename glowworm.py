@@ -1,4 +1,5 @@
 import numpy as np
+from logger import Logger
 # from evolutivelog import EvolutiveLog
 
 """
@@ -15,14 +16,14 @@ GSO Author:
 
 """
 
-def gso(agents_number, dim, func_obj,epochs,step_size, dims_lim = [-1,1]):
+def gso(agents_number, dim, func_obj,epochs,step_size, dims_lim = [-1,1], random_step=False):
 	
 	assert len(dims_lim) == 2
 	assert type(agents_number) == int
 	assert type(dim) == int
 
 	#this will be used in the future to generate a log to monitor the activities
-	# logger = EvolutiveLog()
+	gsologger = Logger()
 
 	"""
 	PARAMETTERS
@@ -63,6 +64,11 @@ def gso(agents_number, dim, func_obj,epochs,step_size, dims_lim = [-1,1]):
 	#range of sigth
 	ranges = np.zeros(agents_number)
 	ranges += range_init
+
+	#dynamic step size parametters
+	# variance_direction = 0
+	# consecutive_fails = 0
+	# min_evolution = 0.01
 
 	"""
 	LUCIFERIN UPDATE PHASE
@@ -133,6 +139,16 @@ def gso(agents_number, dim, func_obj,epochs,step_size, dims_lim = [-1,1]):
 
 		if norm == 0 or np.isnan(norm):
 			norm = step_size
+
+		# if dynamic_step_size:
+		# 	step_size = 
+
+		if random_step:
+			step = step_size*np.random.random()
+			if step < 0.1:
+				step = 0.1
+		else:
+			step = step_size
 
 		new_position = glowworm + step_size*(toward-glowworm)/norm
 
@@ -207,10 +223,10 @@ def gso(agents_number, dim, func_obj,epochs,step_size, dims_lim = [-1,1]):
 				virtual = virtual_glowworm(i)
 				glowworms[i] = position_update(i,virtual)
 
-			# logger.append_individual(glowworms[i], fitness, epoch)
+			gsologger.append_agent(glowworms[i], fitness, epoch)
 
 			ranges[i] = range_update(i,neighbors)
 
 		print(epoch,'> best:',best_fitness_history[-1])
 
-	# logger.save_log('gso-'+str(epochs)+'-'+str(dim)+'D')
+	gsologger.save_log('gso-'+str(epochs)+'-'+str(dim)+'D-schwefel-bigstepsize-3')
