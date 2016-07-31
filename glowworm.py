@@ -1,5 +1,6 @@
 import numpy as np
 from logger import Logger
+import ipdb
 # from evolutivelog import EvolutiveLog
 
 """
@@ -13,6 +14,19 @@ GSO Author:
 - TITLE: Glowworm swarm optimization for simultaneous capture of multiple local optima of multimodal functions
 - DOI: 10.1007/s11721-008-0021-5
 - Author: K.N. Krishnanand · D. Ghose
+
+GSO Basic documentation:
+	agents_number:	(int) number of individuals
+	dim:			(int) dimensions of the problem
+	func_obj:		(function) function that returns a fitness for a given individual
+	epochs:			(int) maximos number of epochs
+	step_size:		(double) size of the step of each individual (fixed when 'random_step' == False, and set as the max value when 'random_step' == False)
+	dims_lim:		(list of int, with 2 positions) a list of two values, determining boundaries of the dimensions (considering the same for all dimensions in this version, should be updated for each one in a near future)
+	random_step:	True or False - Determine if the step is fixed or exists a random between a minium value and the step size
+
+	triggers:
+		- for-each-individual-and-epoch	= f -> runs 'f' for each individual in each epoch
+		- finish-epoch 					= f -> runs 'f' when an epoch is finished
 
 """
 
@@ -29,12 +43,12 @@ def gso(agents_number, dim, func_obj,epochs,step_size, dims_lim = [-1,1], random
 	PARAMETTERS
 	"""
 	#RANGE
-	range_init = 30.0
-	range_min = 5
-	range_boundary = 30.0
+	range_init = 0.1
+	range_min = 0.01
+	range_boundary = 0.2
 
 	#LUCIFERIN
-	luciferin_init = 8
+	luciferin_init = 5
 	luciferin_decay = 0.4
 	luciferin_enhancement = 0.6
 
@@ -42,8 +56,8 @@ def gso(agents_number, dim, func_obj,epochs,step_size, dims_lim = [-1,1], random
 	# step_size = 0.1
 
 	#Neighbors
-	k_neigh = 10
-	beta = 0.2
+	k_neigh = 5
+	beta = 0.005
 
 	"""
 	AGENTES INITIALIZATION
@@ -164,7 +178,7 @@ def gso(agents_number, dim, func_obj,epochs,step_size, dims_lim = [-1,1], random
 
 	def range_update(glowworm_index, neighbors):
 
-		return min(range_min,max(0,ranges[glowworm_index] + (beta*(k_neigh-len(neighbors)))))
+		return min(range_boundary,max(0,ranges[glowworm_index] + (beta*(k_neigh-len(neighbors)))))
 
 	def virtual_glowworm(glowworm_index):
 		glowworm = glowworms[glowworm_index]
@@ -220,13 +234,17 @@ def gso(agents_number, dim, func_obj,epochs,step_size, dims_lim = [-1,1], random
 
 			else:
 
-				virtual = virtual_glowworm(i)
-				glowworms[i] = position_update(i,virtual)
+				# virtual = virtual_glowworm(i)
+				# glowworms[i] = position_update(i,virtual)
+				pass
 
 			gsologger.append_agent(glowworms[i], fitness, epoch)
 
+			temp = ranges[i]
 			ranges[i] = range_update(i,neighbors)
+
+			# ipdb.set_trace()
 
 		print(epoch,'> best:',best_fitness_history[-1])
 
-	gsologger.save_log('gso-'+str(epochs)+'-'+str(dim)+'D-schwefel-bigstepsize-3')
+	gsologger.save_log('gso-I_'+str(agents_number)+'-E_'+str(epochs)+'-'+str(dim)+'D-shekel-v2'+'-no-virt')
