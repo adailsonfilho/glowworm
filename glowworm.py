@@ -1,7 +1,5 @@
 import numpy as np
-from logger import Logger
 import ipdb
-# from evolutivelog import EvolutiveLog
 
 """
 GLOWWORM SWARM OPTIMIZATION (GSO)
@@ -25,27 +23,24 @@ GSO Basic documentation:
 	random_step:	True or False - Determine if the step is fixed or exists a random between a minium value and the step size
 
 	triggers:
-		- for-each-individual-and-epoch	= f -> runs 'f' for each individual in each epoch
-		- finish-epoch 					= f -> runs 'f' when an epoch is finished
+		- individual_updated	= runs for each time an individual is updated
+		- program_ends 			= runs when the program ends
 
 """
 
-def gso(agents_number, dim, func_obj,epochs,step_size, dims_lim = [-1,1], random_step=False):
+def gso(agents_number, dim, func_obj, epochs, step_size, r0, rs, b, k_neigh, dims_lim = [-1,1], random_step=False, virtual_individual = False, individual_updated=None, program_ends = None):
 	
 	assert len(dims_lim) == 2
 	assert type(agents_number) == int
 	assert type(dim) == int
 
-	#this will be used in the future to generate a log to monitor the activities
-	gsologger = Logger()
-
 	"""
 	PARAMETTERS
 	"""
-	#RANGE
-	range_init = 0.1
-	range_min = 0.01
-	range_boundary = 0.2
+	#RANGE of sight
+	range_init =r0
+	# range_min = 0.1
+	range_boundary = rs
 
 	#LUCIFERIN
 	luciferin_init = 5
@@ -56,8 +51,7 @@ def gso(agents_number, dim, func_obj,epochs,step_size, dims_lim = [-1,1], random
 	# step_size = 0.1
 
 	#Neighbors
-	k_neigh = 5
-	beta = 0.005
+	beta = b
 
 	"""
 	AGENTES INITIALIZATION
@@ -88,7 +82,7 @@ def gso(agents_number, dim, func_obj,epochs,step_size, dims_lim = [-1,1], random
 	LUCIFERIN UPDATE PHASE
 	"""
 	def luciferin_update(last_luciferin,fitness):
-		l = (1-luciferin_decay)*last_luciferin + luciferin_enhancement*fitness
+		l = ((1-luciferin_decay)*last_luciferin) + (luciferin_enhancement*fitness)
 		return l
 
 	"""
@@ -159,8 +153,8 @@ def gso(agents_number, dim, func_obj,epochs,step_size, dims_lim = [-1,1], random
 
 		if random_step:
 			step = step_size*np.random.random()
-			if step < 0.1:
-				step = 0.1
+			if step < 0.01:
+				step = 0.01
 		else:
 			step = step_size
 
@@ -177,7 +171,6 @@ def gso(agents_number, dim, func_obj,epochs,step_size, dims_lim = [-1,1], random
 		return new_position
 
 	def range_update(glowworm_index, neighbors):
-
 		return min(range_boundary,max(0,ranges[glowworm_index] + (beta*(k_neigh-len(neighbors)))))
 
 	def virtual_glowworm(glowworm_index):
@@ -194,10 +187,12 @@ def gso(agents_number, dim, func_obj,epochs,step_size, dims_lim = [-1,1], random
 			return distances[j][i]
 		else:
 			return 0.0
+	
+
 	"""
 	EXECUTION
 	"""
-
+	fitness = np.zeros(agents_number)
 	best_fitness_history = []
 
 	#initialize distance matrix (over main diagonal, only)
@@ -211,13 +206,16 @@ def gso(agents_number, dim, func_obj,epochs,step_size, dims_lim = [-1,1], random
 	for epoch in range(epochs):
 
 		epoch_fitness_history = []
+
 		#update all glowworms luciferin
 		for i in range(agents_number):
 
 			li = luciferins[i]
-			fitness = func_obj(glowworms[i])
-			luciferins[i] = luciferin_update(li,fitness)
-			epoch_fitness_history.append(fitness)
+			if epoch == 0:				
+				fitness[i] = func_obj(glowworms[i])
+
+			luciferins[i] = luciferin_update(li,fitness[i])
+			epoch_fitness_history.append(fitness[i])
 
 		best_fitness_history.append(max(epoch_fitness_history))
 
@@ -227,24 +225,31 @@ def gso(agents_number, dim, func_obj,epochs,step_size, dims_lim = [-1,1], random
 			#find best neighbors
 			neighbors = find_neighbors(i)
 
+			change = False
 			if len(neighbors) > 0:
 
 				toward_index = follow(i,neighbors)
 				glowworms[i] = position_update(i,toward_index)
+				change = True
 
+			elif virtual_individual:
+
+				virtual = virtual_glowworm(i)
+				glowworms[i] = position_update(i,virtual)
+				change = True
 			else:
+				print('fez nada')
 
-				# virtual = virtual_glowworm(i)
-				# glowworms[i] = position_update(i,virtual)
-				pass
+			#atualiza fitness, mas nao luciferina
+			if change:
+				fitness[i] = func_obj(glowworms[i])
 
-			gsologger.append_agent(glowworms[i], fitness, epoch)
+			if individual_updated is not None:
+				individual_updated(glowworms[i], fitness[i], epoch)
 
-			temp = ranges[i]
 			ranges[i] = range_update(i,neighbors)
-
-			# ipdb.set_trace()
 
 		print(epoch,'> best:',best_fitness_history[-1])
 
-	gsologger.save_log('gso-I_'+str(agents_number)+'-E_'+str(epochs)+'-'+str(dim)+'D-shekel-v2'+'-no-virt')
+	if program_ends is not None:
+		program_ends()
