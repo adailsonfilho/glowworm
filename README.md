@@ -3,6 +3,6 @@ ___
 
 An implementation of Glowworm Swarm Optimization
 
-Uses:
+Dependencies?
 - Numpy (GSO implementation)
 - Deap benchmark function for testing
